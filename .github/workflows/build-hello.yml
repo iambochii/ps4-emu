@@ -11,8 +11,6 @@ jobs:
           sudo ln -sf /usr/bin/clang-18 /usr/local/bin/clang
           sudo ln -sf /usr/bin/clang++-18 /usr/local/bin/clang++
           sudo ln -sf /usr/bin/ld.lld-18 /usr/local/bin/ld.lld
-          clang --version
-          ld.lld --version
 
       - name: Descargar toolchain
         env:
@@ -29,9 +27,22 @@ jobs:
       - name: Compilar hello_world
         run: |
           export OO_PS4_TOOLCHAIN=$HOME/oo/OpenOrbis/PS4Toolchain
-          make -C oo-src/samples/hello_world
+          S=oo-src/samples/hello_world
+          echo "=== sce_sys del sample ==="
+          find $S/sce_sys -type f | head -30
+          echo "=== right.sprx en todo ==="
+          find $HOME/oo oo-src -name 'right.sprx' | head
+          if [ ! -f $S/sce_sys/about/right.sprx ]; then
+            R=$(find $HOME/oo oo-src -name 'right.sprx' | head -1)
+            if [ -n "$R" ]; then
+              mkdir -p $S/sce_sys/about
+              cp "$R" $S/sce_sys/about/right.sprx
+              echo "copiado desde $R"
+            fi
+          fi
+          make -C $S
           echo "=== ARCHIVOS GENERADOS ==="
-          find oo-src/samples/hello_world -type f \( -name '*.pkg' -o -name 'eboot.bin' -o -name '*.elf' \) -exec ls -la {} +
+          find $S -type f \( -name '*.pkg' -o -name 'eboot.bin' \) -exec ls -la {} +
 
       - uses: actions/upload-artifact@v4
         with:
