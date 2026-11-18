@@ -1,0 +1,10 @@
+name: ver-toolchain
+on: workflow_dispatch
+jobs:
+  listar:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Listar assets del release de OpenOrbis
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release view --repo OpenOrbis/OpenOrbis-PS4-Toolchain --json tagName,assets --jq '.tagName, (.assets[].name)'
