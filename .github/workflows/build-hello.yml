@@ -1,0 +1,41 @@
+name: build-hello
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Descargar y descomprimir toolchain
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v0.5.4 --repo OpenOrbis/OpenOrbis-PS4-Toolchain --pattern 'toolchain-llvm-18.tar.gz'
+          mkdir -p $HOME/oo
+          tar -xzf toolchain-llvm-18.tar.gz -C $HOME/oo
+          echo "=== ESTRUCTURA ==="
+          find $HOME/oo -maxdepth 3 -type d | head -60
+          echo "=== HERRAMIENTAS ==="
+          find $HOME/oo -type f \( -name 'create-fself*' -o -name 'create-gp4*' -o -name 'PkgTool*' \) | head
+
+      - name: Clonar repo de OpenOrbis para los samples
+        run: |
+          git clone --depth 1 https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain.git oo-src
+          echo "=== SAMPLES ==="
+          find oo-src/samples -maxdepth 2 -name Makefile
+
+      - name: Intentar compilar un sample
+        continue-on-error: true
+        run: |
+          FSELF=$(find $HOME/oo -type f -name 'create-fself*' | head -1)
+          export OO_PS4_TOOLCHAIN=$(dirname $(dirname $(dirname "$FSELF")))
+          echo "OO_PS4_TOOLCHAIN=$OO_PS4_TOOLCHAIN"
+          find $OO_PS4_TOOLCHAIN/bin -type f -exec chmod +x {} + || true
+          SAMPLE=$(find oo-src/samples -maxdepth 2 -name Makefile | grep -i hello | head -1)
+          echo "SAMPLE=$SAMPLE"
+          make -C "$(dirname "$SAMPLE")"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pkg
+          path: oo-src/**/*.pkg
+          if-no-files-found: warn
