@@ -4,13 +4,15 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - name: Instalar LLVM 18
+      - name: Instalar LLVM 18 y libssl1.1
         run: |
+          echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list
           sudo apt-get update
-          sudo apt-get install -y clang-18 lld-18 llvm-18
+          sudo apt-get install -y clang-18 lld-18 llvm-18 libssl1.1
           sudo ln -sf /usr/bin/clang-18 /usr/local/bin/clang
           sudo ln -sf /usr/bin/clang++-18 /usr/local/bin/clang++
           sudo ln -sf /usr/bin/ld.lld-18 /usr/local/bin/ld.lld
+          ls -la /usr/lib/x86_64-linux-gnu/ | grep -i libssl
 
       - name: Descargar toolchain
         env:
@@ -25,20 +27,16 @@ jobs:
         run: git clone --depth 1 https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain.git oo-src
 
       - name: Compilar hello_world
+        env:
+          DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "1"
+          CLR_OPENSSL_VERSION_OVERRIDE: "1.1"
         run: |
           export OO_PS4_TOOLCHAIN=$HOME/oo/OpenOrbis/PS4Toolchain
           S=oo-src/samples/hello_world
-          echo "=== sce_sys del sample ==="
-          find $S/sce_sys -type f | head -30
-          echo "=== right.sprx en todo ==="
-          find $HOME/oo oo-src -name 'right.sprx' | head
           if [ ! -f $S/sce_sys/about/right.sprx ]; then
-            R=$(find $HOME/oo oo-src -name 'right.sprx' | head -1)
-            if [ -n "$R" ]; then
-              mkdir -p $S/sce_sys/about
-              cp "$R" $S/sce_sys/about/right.sprx
-              echo "copiado desde $R"
-            fi
+            R=$(find $HOME/oo -name 'right.sprx' | head -1)
+            mkdir -p $S/sce_sys/about
+            cp "$R" $S/sce_sys/about/right.sprx
           fi
           make -C $S
           echo "=== ARCHIVOS GENERADOS ==="
